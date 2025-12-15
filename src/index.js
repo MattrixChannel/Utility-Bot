@@ -201,6 +201,43 @@ client.on('messageCreate', async (message) => {
             message.channel.send(`📊 Сервер: ${res.members} участников, ${res.messages} сообщений, ${res.punishments} наказаний.`);
         }
     }
+
+    // !autorole add @role welcome|restore
+    if (cmd === 'autorole' && args[0] === 'add') {
+        if (!message.member.permissions.has('MANAGE_ROLES')) {
+            return message.channel.send('❌ Недостаточно прав (нужно: Управление ролями).');
+        }
+
+        const role = message.mentions.roles.first();
+        const type = args[2]?.toLowerCase();
+
+        if (!role) {
+            return message.channel.send('❌ Укажите роль: `!autorole add @Роль welcome`');
+        }
+        if (!type || !['welcome', 'restore'].includes(type)) {
+            return message.channel.send('❌ Укажите тип: `welcome` или `restore`');
+        }
+        if (role.managed) {
+            return message.channel.send('❌ Нельзя назначать роли интеграций (боты, Boost).');
+        }
+        if (role.position >= message.guild.members.me.roles.highest.position) {
+            return message.channel.send('❌ Моя роль ниже — не могу выдавать эту роль.');
+        }
+
+        const payload = {
+            guildId: message.guild.id,
+            roleId: role.id,
+            type: type,
+            roleName: role.name
+        };
+
+        const res = await apiPost('setup-autorole', payload);
+        if (res?.status === 'ok') {
+            message.channel.send(`✅ Роль **${role.name}** добавлена как \`${type}\`.`);
+        } else {
+            message.channel.send(`⚠ Ошибка: ${res?.message || 'неизвестно'}`);
+        }
+    }
 });
 
 // СОБЫТИЯ
